@@ -1,0 +1,16 @@
+[
+  {
+    "instance_name": "Prod Instance",
+    "host": "URL",
+    "username": "USERNAME",
+    "port": 22,
+    "pem_key": "pemKey.pem"
+  },
+  {
+    "instance_name": "Stage Instance",
+    "host": "URL",
+    "username": "USERNAME",
+    "port": 22,
+    "pem_key": "pemKey.pem"
+  }
+]

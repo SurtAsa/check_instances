@@ -1,0 +1,111 @@
+#!/usr/bin/env python
+__author__ = "Paulo Martins"
+__version__ = "1.1.1"
+
+import paramiko
+import json
+import os
+import requests
+import time
+
+from rocketry import Rocketry
+
+app = Rocketry()
+
+ROLE_ID = "TAG_ID" #tag de testes
+DISCORD_WEBHOOK_URL = "DISCORD_WEBHOOK_URL"  # webhook de testes
+
+def send_discord_notification(message):
+    """
+    Envia uma mensagem para o Discord via webhook.
+    """
+    payload = {"content": message}
+    try:
+        response = requests.post(DISCORD_WEBHOOK_URL, json=payload)
+        if response.status_code == 204:
+            print("[INFO] Notificação enviada ao Discord com sucesso.")
+        else:
+            print(f"[ERRO] Falha ao enviar notificação ao Discord: {response.status_code}")
+    except Exception as e:
+        print(f"[ERRO] Falha ao conectar ao Discord: {e}")
+
+def check_instance_online(instance):
+    instance_name = instance["instance_name"]
+    host = instance["host"]
+    username = instance["username"]
+    port = instance.get("port", 22)
+    pem_key = instance["pem_key"]
+
+    try:
+        # Verifica se a chave PEM existe
+        if not os.path.isfile(pem_key):
+            message = f"[ERRO] {instance_name} - Chave PEM '{pem_key}' não encontrada para {host} <@&{ROLE_ID}>"
+            send_discord_notification(message)
+            return message
+
+        # Configura a chave PEM para autenticação
+        key = paramiko.RSAKey.from_private_key_file(pem_key)
+
+        # Conecta à instância
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.connect(hostname=host, port=port, username=username, pkey=key, timeout=5)
+        ssh.close()
+        return f"[OK] {instance_name} - Instância {host} está online"
+    except Exception as e:
+        message = f"[ERRO] {instance_name} - Falha ao conectar com {host}: {e} <@&{ROLE_ID}>"
+        send_discord_notification(message)
+        return message
+
+@app.task('every 4 hour')
+def main():
+    MAX_RETRIES = 5  # Número máximo de tentativas
+    RETRY_COUNT = 0  # Contador de tentativas
+    try:
+        print("[INFO] Iniciando a verificação das instâncias...")
+        
+        while RETRY_COUNT < MAX_RETRIES:
+            try:
+                # Carrega a configuração das instâncias
+                with open("instances.json", "r") as file:
+                    instances = json.load(file)
+                break  # Sai do loop se o carregamento for bem-sucedido    
+            except FileNotFoundError as e:
+                RETRY_COUNT += 1
+                print(f"[ERRO] Arquivo de configuração não encontrado: {e}")
+                send_discord_notification(f"[ERRO] Arquivo de configuração não encontrado: {e} <@&{ROLE_ID}>")
+            except json.JSONDecodeError as e:
+                RETRY_COUNT += 1
+                print(f"[ERRO] Erro no formato do arquivo de configuração: {e}")
+                send_discord_notification(f"[ERRO] Erro no formato do arquivo de configuração: {e} <@&{ROLE_ID}>")
+            except Exception as e:
+                RETRY_COUNT += 1
+                print(f"[ERRO] Não foi possível carregar o arquivo de configuração: {e}")
+                send_discord_notification(f"[ERRO] Não foi possível carregar o arquivo de configuração: {e} <@&{ROLE_ID}>")
+
+            if RETRY_COUNT < MAX_RETRIES:
+                print(f"[INFO] Tentando novamente em 1 minuto... ({RETRY_COUNT}/{MAX_RETRIES})")
+                time.sleep(60)  # Aguarda 1 minuto antes de tentar novamente
+            else:
+                print(f"[CRÍTICO] Limite de {MAX_RETRIES} tentativas atingido. Abortando.")
+                send_discord_notification(f"[CRÍTICO] Limite de {MAX_RETRIES} tentativas atingido. Verifique o sistema. <@&{ROLE_ID}>")
+                return  # Sai da função ou interrompe a execução
+
+        # Verifica cada instância
+        for instance in instances:
+            result = check_instance_online(instance)
+            print(result)
+
+        print("[INFO] Verificação concluída. Aguardando 1 hora para a próxima execução.")
+        send_discord_notification(f"[INFO] Verificação das instâncias concluída.")
+
+    
+    except KeyboardInterrupt:
+        print("\n[INFO] Interrupção manual detectada. Encerrando o script.")
+        send_discord_notification(f"[INFO] Script de verificação encerrado manualmente. <@&{ROLE_ID}>")
+    except Exception as e:
+        print(f"[ERRO] Erro inesperado: {e}")
+        send_discord_notification(f"[ERRO] Erro inesperado: {e} <@&{ROLE_ID}>")
+
+if __name__ == "__main__":
+    app.run()
