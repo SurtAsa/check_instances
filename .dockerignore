@@ -1,0 +1,6 @@
+*
+!Pipfile
+!Pipfile.lock
+!check_instances.py
+!instances.json
+!*.pem

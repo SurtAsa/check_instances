@@ -5,7 +5,7 @@ FROM python:3.10-slim-buster
 WORKDIR /app
 
 # Copia a chave para o container
-COPY pemKey.pem ./
+COPY *.pem ./pemKey.pem
 
 # Atribui permissões
 RUN  chmod 400 pemKey.pem
@@ -16,8 +16,8 @@ COPY Pipfile Pipfile.lock ./
 # Instala as dependências do projeto
 RUN pip install pipenv && pipenv install --system --deploy
 
-# Copia o restante do código para o container
-COPY . .
+# Copia o código da aplicação para o container
+COPY check_instances.py instances.json ./
 
 # Comando para iniciar o bot
 CMD ["python", "check_instances.py"]
