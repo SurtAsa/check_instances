@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 __author__ = "Paulo Martins"
-__version__ = "1.1.1"
+__version__ = "1.2.0"
 
 import paramiko
 import json
@@ -9,11 +9,17 @@ import requests
 import time
 
 from rocketry import Rocketry
+from rocketry.conds import cron
 
 app = Rocketry()
 
 ROLE_ID = "TAG_ID" #tag de testes
 DISCORD_WEBHOOK_URL = "DISCORD_WEBHOOK_URL"  # webhook de testes
+
+PROD_HEALTH_ENDPOINTS = {
+    "prod01": "https://prod01.mercadotopografico.com.br/api/v1/health",
+    "prod02": "https://prod02.mercadotopografico.com.br/api/v1/health",
+}
 
 def send_discord_notification(message):
     """
@@ -56,6 +62,35 @@ def check_instance_online(instance):
         message = f"[ERRO] {instance_name} - Falha ao conectar com {host}: {e} <@&{ROLE_ID}>"
         send_discord_notification(message)
         return message
+
+def check_production_endpoint(name, url):
+    """
+    Consulta o health de uma máquina de produção.
+    Notifica o Discord apenas quando a resposta não for HTTP 200.
+    """
+    try:
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            print(f"[OK] {name} - Health respondeu 200")
+            return
+
+        message = (
+            f"[ERRO] {name} - Health {url} respondeu {response.status_code} "
+            f"<@&{ROLE_ID}>"
+        )
+    except Exception as e:
+        message = f"[ERRO] {name} - Falha ao acessar {url}: {e} <@&{ROLE_ID}>"
+
+    print(message)
+    send_discord_notification(message)
+
+@app.task(cron(minute="0,10,20,30,40,50"))
+def check_prod01_health():
+    check_production_endpoint("prod01", PROD_HEALTH_ENDPOINTS["prod01"])
+
+@app.task(cron(minute="5,15,25,35,45,55"))
+def check_prod02_health():
+    check_production_endpoint("prod02", PROD_HEALTH_ENDPOINTS["prod02"])
 
 @app.task('every 4 hour')
 def main():
