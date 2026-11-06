@@ -13,8 +13,8 @@ from rocketry.conds import cron
 
 app = Rocketry()
 
-ROLE_ID = "TAG_ID" #tag de testes
-DISCORD_WEBHOOK_URL = "DISCORD_WEBHOOK_URL"  # webhook de testes
+ROLE_ID = "1086351331813499020"
+DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1222560415620534312/aCeVnHGjM0JmluBYmWUhBAhNKGMYx7zSFGkUdStUy9bHLRRJN8Uz3EjSrb2xfcrvoJYX"
 
 PROD_HEALTH_ENDPOINTS = {
     "prod01": "https://prod01.mercadotopografico.com.br/api/v1/health",
