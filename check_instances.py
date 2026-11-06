@@ -143,4 +143,6 @@ def main():
         send_discord_notification(f"[ERRO] Erro inesperado: {e} <@&{ROLE_ID}>")
 
 if __name__ == "__main__":
+    for name, url in PROD_HEALTH_ENDPOINTS.items():
+        check_production_endpoint(name, url)
     app.run()

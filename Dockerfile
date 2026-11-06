@@ -4,6 +4,9 @@ FROM python:3.10-slim-buster
 # Define o diretório de trabalho no container
 WORKDIR /app
 
+# Exibe os logs do Python em tempo real no docker logs
+ENV PYTHONUNBUFFERED=1
+
 # Copia a chave para o container
 COPY *.pem ./pemKey.pem
 

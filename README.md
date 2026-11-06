@@ -2,7 +2,7 @@
 
 Um script em Python para monitorar suas instâncias e notificar no Discord quando algo falhar. Ele faz duas verificações:
 - **SSH** (a cada 4 horas): conecta via SSH em cada instância listada no `instances.json` para confirmar que ela está online.
-- **Health de produção** (`prod01` e `prod02`, cada uma a cada 10 minutos, alternando de 5 em 5 minutos): consulta os endpoints de health e notifica quando a resposta não for HTTP 200.
+- **Health de produção** (`prod01` e `prod02`, cada uma a cada 10 minutos, alternando de 5 em 5 minutos, além de uma vez ao iniciar o script): consulta os endpoints de health e notifica quando a resposta não for HTTP 200.
 
 Pré-requisitos:
 1. Biblioteca paramiko: É usada para conectar-se via SSH.
